@@ -19,8 +19,10 @@ return new class extends Migration
             $table->string('cover_image_url', 1000)->nullable();
             $table->text('description')->nullable();
             $table->integer('page_count')->nullable();
-            $table->date('published_date')->nullable();
+            $table->string('published_date')->nullable();
             $table->string('main_category')->nullable();
+            $table->decimal('average_rating', 3, 2)->unsigned()->nullable();
+            $table->string('google_books_id')->nullable();
             $table->enum('status', ['For Purchase', 'Owned', 'Reading', 'Read'])->default('For Purchase');
             $table->date('purchase_date')->nullable();
             $table->integer('price')->nullable();
@@ -28,8 +30,6 @@ return new class extends Migration
             $table->date('finish_reading_date')->nullable();
             $table->integer('reading_progress')->default(0);
             $table->text('personal_notes')->nullable();
-            $table->string('google_books_id')->nullable();
-            $table->decimal('average_rating', 3, 2)->unsigned()->nullable();
             $table->decimal('personal_rating', 3, 2)->unsigned()->nullable();
             $table->timestamps();
         });

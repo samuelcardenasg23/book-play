@@ -34,7 +34,6 @@ class Book extends Model
 
     protected $casts = [
         'authors' => 'array',
-        'published_date' => 'date',
         'purchase_date' => 'date',
         'start_reading_date' => 'date',
         'finish_reading_date' => 'date',

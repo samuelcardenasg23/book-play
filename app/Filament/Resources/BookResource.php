@@ -10,15 +10,18 @@ use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Filament\Resources\Resource;
 use Illuminate\Support\HtmlString;
-use Illuminate\Support\Facades\Log;
 use App\Services\GoogleBooksService;
 use Illuminate\Support\Facades\Auth;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\RichEditor;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\ToggleButtons;
 use Filament\Tables\Columns\Summarizers\Sum;
 use App\Filament\Resources\BookResource\Pages;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -106,12 +109,14 @@ class BookResource extends Resource
                         TextInput::make('authors')
                             ->disabled()
                             ->dehydrated(),
-                        TextInput::make('cover_image_url')
-                            ->url()
-                            ->disabled()
-                            ->dehydrated()
-                            ->hidden(),
-                        Forms\Components\Textarea::make('description')
+                        // TextInput::make('cover_image_url')
+                        //     ->url()
+                        //     ->dehydrated()
+                        //     ->required()
+                        //     ->hidden(),
+                        Hidden::make('cover_image_url')
+                            ->dehydrated(),
+                        Textarea::make('description')
                             ->maxLength(65535)
                             ->columnSpanFull()
                             ->disabled()
@@ -122,9 +127,7 @@ class BookResource extends Resource
                             ->minValue(1)
                             ->disabled()
                             ->dehydrated(),
-                        Forms\Components\DatePicker::make('published_date')
-                            ->format('Y-m-d')
-                            ->native(false)
+                        TextInput::make('published_date')
                             ->disabled()
                             ->dehydrated(),
                         TextInput::make('main_category')
@@ -139,18 +142,18 @@ class BookResource extends Resource
                             ->suffix('/5')
                             ->disabled()
                             ->dehydrated(),
-                        TextInput::make('google_books_id')
-                            ->maxLength(255)
-                            ->placeholder('Enter Google Books ID')
-                            ->helperText('Optional: ID from Google Books API')
-                            ->disabled()
-                            ->dehydrated()
-                            ->hidden(),
+                        // TextInput::make('google_books_id')
+                        //     ->maxLength(255)
+                        //     ->placeholder('Enter Google Books ID')
+                        //     ->helperText('Optional: ID from Google Books API')
+                        //     ->disabled()
+                        //     ->dehydrated(),
+                        Hidden::make('google_books_id')->dehydrated(),
                     ])->columns(2),
                 Section::make('Book Status')
                     ->icon('heroicon-o-calculator')
                     ->schema([
-                        Forms\Components\ToggleButtons::make('status')
+                        ToggleButtons::make('status')
                             ->options([
                                 'For Purchase' => 'For Purchase',
                                 'Owned' => 'Owned',
@@ -166,44 +169,43 @@ class BookResource extends Resource
                             ->default('For Purchase')
                             ->reactive()
                             ->inline(),
-                        Forms\Components\DatePicker::make('purchase_date')
+                        DatePicker::make('purchase_date')
                             ->label('Purchase Date')
                             ->native(false)
                             ->format('Y-m-d')
                             ->nullable()
                             ->hidden(fn (callable $get) => $get('status') === 'For Purchase'),
-                        Forms\Components\TextInput::make('price')
+                        TextInput::make('price')
                             ->label('Price')
                             ->prefix('$')
-                            ->required()
                             ->default(0),
-                        Forms\Components\DatePicker::make('start_reading_date')
+                        DatePicker::make('start_reading_date')
                             ->label('Start Reading Date')
                             ->native(false)
                             ->format('Y-m-d')
                             ->nullable()
                             ->hidden(fn (callable $get) => in_array($get('status'), ['For Purchase', 'Owned'])),
-                        Forms\Components\DatePicker::make('finish_reading_date')
+                        DatePicker::make('finish_reading_date')
                             ->label('Finish Reading Date')
                             ->native(false)
                             ->format('Y-m-d')
                             ->nullable()
                             ->hidden(fn (callable $get) => $get('status') !== 'Read'),
-                        Forms\Components\TextInput::make('reading_progress')
+                        TextInput::make('reading_progress')
                             ->numeric()
                             ->default(0)
                             ->minValue(0)
                             ->maxValue(100)
                             ->suffix('%')
                             ->hidden(fn (callable $get) => in_array($get('status'), ['For Purchase', 'Owned'])),
-                        Forms\Components\TextInput::make('personal_rating')
+                        TextInput::make('personal_rating')
                             ->numeric()
                             ->step(0.1)
                             ->minValue(0)
                             ->maxValue(5)
                             ->suffix('/5')
                             ->visible(fn (callable $get) => in_array($get('status'), ['Read', 'Reading'])),
-                        Forms\Components\RichEditor::make('personal_notes')
+                        RichEditor::make('personal_notes')
                             ->maxLength(65535)
                             ->columnSpanFull(),
                     ])->columns(2),
