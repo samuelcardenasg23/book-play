@@ -18,47 +18,23 @@ class GoogleBooksService
 
     public function searchBooks($query)
     {
-        $url = $this->apiUrl . '?q=' . urlencode($query) . '&key=' . $this->apiKey;
-        Log::info('Searching books with URL: ' . $url);
-
-        $response = Http::withoutVerifying()->get($url);
-
-        Log::info('Search books response', [
-            'status' => $response->status(),
-            'body' => $response->body(),
+        $response = Http::withOptions([
+            'verify' => false,
+        ])->get($this->apiUrl, [
+            'q' => $query,
+            'key' => $this->apiKey,
         ]);
-
-        if ($response->failed()) {
-            Log::error('Google Books API search request failed', [
-                'status' => $response->status(),
-                'body' => $response->body(),
-            ]);
-            return [];
-        }
 
         return $response->json();
     }
 
     public function getBookById($id)
     {
-        $url = $this->apiUrl . '/' . $id . '?key=' . $this->apiKey;
-        Log::info('Getting book by ID with URL: ' . $url);
-
-        $response = Http::withoutVerifying()->get($url);
-
-        Log::info('Get book by ID response', [
-            'status' => $response->status(),
-            'body' => $response->body(),
+        $response = Http::withOptions([
+            'verify' => false,
+        ])->get("{$this->apiUrl}/{$id}", [
+            'key' => $this->apiKey,
         ]);
-
-        if ($response->failed()) {
-            Log::error('Google Books API get book request failed', [
-                'id' => $id,
-                'status' => $response->status(),
-                'body' => $response->body(),
-            ]);
-            return null;
-        }
 
         return $response->json();
     }

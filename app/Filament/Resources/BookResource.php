@@ -60,8 +60,6 @@ class BookResource extends Resource
                                 $googleBooksService = new GoogleBooksService();
                                 $results = $googleBooksService->searchBooks($search);
 
-                                Log::info('Search results', ['results' => $results]);
-
                                 return collect($results['items'] ?? [])
                                     ->take(5)
                                     ->mapWithKeys(function ($item) {
@@ -70,13 +68,10 @@ class BookResource extends Resource
                                     ->toArray();
                             })
                             ->afterStateUpdated(function ($state, callable $set) {
-                                Log::info('After state updated', ['state' => $state]);
 
                                 if ($state && $state !== 'label') {
                                     $googleBooksService = new GoogleBooksService();
                                     $book = $googleBooksService->getBookById($state);
-
-                                    Log::info('Google Books API Response:', ['book' => $book]);
 
                                     if ($book && isset($book['volumeInfo'])) {
                                         $volumeInfo = $book['volumeInfo'];
@@ -91,34 +86,7 @@ class BookResource extends Resource
                                         $set('main_category', $volumeInfo['categories'][0] ?? '');
                                         $set('average_rating', $volumeInfo['averageRating'] ?? null);
                                         $set('google_books_id', $state);
-
-                                        // Log the set fields
-                                        Log::info('Fields set', [
-                                            'title' => $volumeInfo['title'] ?? '',
-                                            'authors' => $volumeInfo['authors'] ?? [],
-                                            'description' => $volumeInfo['description'] ?? '',
-                                            'cover_image_url' => $volumeInfo['imageLinks']['thumbnail'] ?? '',
-                                            'page_count' => $volumeInfo['pageCount'] ?? null,
-                                            'published_date' => $volumeInfo['publishedDate'] ?? null,
-                                            'main_category' => $volumeInfo['categories'][0] ?? '',
-                                            'average_rating' => $volumeInfo['averageRating'] ?? null,
-                                            'google_books_id' => $state,
-                                        ]);
-                                    } else {
-                                        Log::warning('Book data is missing or incomplete', ['book' => $book]);
                                     }
-                                } else {
-                                    Log::warning('No valid state provided for Google Books search', ['state' => $state]);
-                                    // Clear the fields if no valid state is provided
-                                    $set('title', '');
-                                    $set('authors', '');
-                                    $set('description', '');
-                                    $set('cover_image_url', '');
-                                    $set('page_count', null);
-                                    $set('published_date', null);
-                                    $set('main_category', '');
-                                    $set('average_rating', null);
-                                    $set('google_books_id', '');
                                 }
                             })
                             ->reactive(),
