@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use Filament\Forms;
 use App\Models\Book;
 use Filament\Tables;
+use App\Enums\Status;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Filament\Resources\Resource;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Builder;
 use App\Filament\Resources\BookResource\Pages;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Resources\BookResource\RelationManagers;
+use Illuminate\Support\HtmlString;
 
 class BookResource extends Resource
 {
@@ -25,6 +27,18 @@ class BookResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
+    protected static ?string $recordTitleAttribute = 'title';
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['title', 'authors'];
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return Book::where('user_id', Auth::user()->id)->count();
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -32,12 +46,23 @@ class BookResource extends Resource
                 Section::make('Book Information')
                     ->icon('heroicon-o-book-open')
                     ->schema([
+                Forms\Components\Placeholder::make('image')
+                    ->label('Cover Image')
+                    ->content(function (Book $record): HtmlString {
+                        $coverImage = $record->cover_image_url;
+
+                        return new HtmlString(
+                            "<img src='{$coverImage}'>",
+                        );
+                    })
+                    ->hidden(fn(?Book $record) => $record === null)
+                    ->columnSpan(3),
                 Forms\Components\TextInput::make('title')
                     ->required()
                     ->maxLength(255),
                 Forms\Components\TagsInput::make('authors')
                     ->separator(',')
-                    ->splitKeys(['Tab', ' ']),
+                    ->splitKeys(['Tab', ',']),
                 Forms\Components\TextInput::make('cover_image_url')
                     ->url()
                     ->maxLength(255),
@@ -66,14 +91,11 @@ class BookResource extends Resource
             Section::make('Book Status')
                 ->icon('heroicon-o-calculator')
                 ->schema([
-                Forms\Components\Select::make('status')
-                    ->options([
-                        'For Purchase' => 'For Purchase',
-                        'Owned' => 'Owned',
-                        'Reading' => 'Reading',
-                        'Read' => 'Read',
-                    ])
-                    ->default('For Purchase'),
+                Forms\Components\ToggleButtons::make('status')
+                    ->options(Status::class)
+                    ->colors(Status::getColors())
+                    ->default(Status::FORPURCHASE)
+                    ->inline(),
                 Forms\Components\DatePicker::make('purchase_date')
                     ->native(false)
                     ->default(now())
@@ -116,6 +138,15 @@ class BookResource extends Resource
                 Tables\Columns\TextColumn::make('authors')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('status')
+                    ->badge()
+                    ->color(
+                        fn(string $state): string => match ($state) {
+                            'For Purchase' => 'danger',
+                            'Owned' => 'info',
+                            'Reading' => 'warning',
+                            'Read' => 'success',
+                        },
+                    )
                     ->searchable(),
                 Tables\Columns\TextColumn::make('reading_progress')
                     ->label('Progress'),
