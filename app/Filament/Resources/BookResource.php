@@ -92,9 +92,19 @@ class BookResource extends Resource
                 ->icon('heroicon-o-calculator')
                 ->schema([
                 Forms\Components\ToggleButtons::make('status')
-                    ->options(Status::class)
-                    ->colors(Status::getColors())
-                    ->default(Status::FORPURCHASE)
+                    ->options([
+                        'For Purchase' => 'For Purchase',
+                        'Owned' => 'Owned',
+                        'Reading' => 'Reading',
+                        'Read' => 'Read',
+                    ])
+                    ->colors([
+                        'For Purchase' => 'danger',
+                        'Owned' => 'info',
+                        'Reading' => 'warning',
+                        'Read' => 'success',
+                    ])
+                    ->default('For Purchase')
                     ->inline(),
                 Forms\Components\DatePicker::make('purchase_date')
                     ->native(false)
@@ -164,6 +174,7 @@ class BookResource extends Resource
                     ]),
             ])
             ->actions([
+                Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([
