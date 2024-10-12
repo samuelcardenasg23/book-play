@@ -23,7 +23,7 @@ return new class extends Migration
             $table->string('main_category')->nullable();
             $table->decimal('average_rating', 3, 2)->unsigned()->nullable();
             $table->string('google_books_id')->nullable();
-            $table->enum('status', ['For Purchase', 'Owned', 'Reading', 'Read'])->default('For Purchase');
+            $table->json('status')->default('["For Purchase"]');
             $table->date('purchase_date')->nullable();
             $table->integer('price')->nullable();
             $table->date('start_reading_date')->nullable();

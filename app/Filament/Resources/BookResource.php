@@ -26,6 +26,7 @@ use Filament\Tables\Columns\Summarizers\Sum;
 use App\Filament\Resources\BookResource\Pages;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Resources\BookResource\RelationManagers;
+use Filament\Forms\Components\CheckboxList;
 
 class BookResource extends Resource
 {
@@ -153,58 +154,64 @@ class BookResource extends Resource
                 Section::make('Book Status')
                     ->icon('heroicon-o-calculator')
                     ->schema([
-                        ToggleButtons::make('status')
+                        CheckboxList::make('status')
                             ->options([
                                 'For Purchase' => 'For Purchase',
                                 'Owned' => 'Owned',
                                 'Reading' => 'Reading',
                                 'Read' => 'Read',
                             ])
-                            ->colors([
-                                'For Purchase' => 'danger',
-                                'Owned' => 'info',
-                                'Reading' => 'warning',
-                                'Read' => 'success',
-                            ])
-                            ->default('For Purchase')
+                            ->columns(2)
                             ->reactive()
-                            ->inline(),
+                            ->required()
+                            ->rules(['min:1'])
+                            ->default(['For Purchase']), // Ensure at least one status is selected
                         DatePicker::make('purchase_date')
                             ->label('Purchase Date')
                             ->native(false)
                             ->format('Y-m-d')
                             ->nullable()
-                            ->hidden(fn (callable $get) => $get('status') === 'For Purchase'),
+                            ->hidden(fn (callable $get) => !in_array('Owned', $get('status') ?? [])),
                         TextInput::make('price')
                             ->label('Price')
                             ->prefix('$')
-                            ->default(0),
+                            ->numeric()
+                            ->hidden(fn (callable $get) => !in_array('Owned', $get('status') ?? [])),
                         DatePicker::make('start_reading_date')
                             ->label('Start Reading Date')
                             ->native(false)
                             ->format('Y-m-d')
                             ->nullable()
-                            ->hidden(fn (callable $get) => in_array($get('status'), ['For Purchase', 'Owned'])),
+                            ->hidden(fn (callable $get) => !in_array('Reading', $get('status') ?? []) && !in_array('Read', $get('status') ?? [])),
                         DatePicker::make('finish_reading_date')
                             ->label('Finish Reading Date')
                             ->native(false)
                             ->format('Y-m-d')
                             ->nullable()
-                            ->hidden(fn (callable $get) => $get('status') !== 'Read'),
+                            ->afterOrEqual('start_reading_date')
+                            ->hidden(fn (callable $get) => !in_array('Read', $get('status') ?? [])),
                         TextInput::make('reading_progress')
                             ->numeric()
                             ->default(0)
                             ->minValue(0)
                             ->maxValue(100)
                             ->suffix('%')
-                            ->hidden(fn (callable $get) => in_array($get('status'), ['For Purchase', 'Owned'])),
+                            ->hidden(fn (callable $get) =>
+                                !(in_array('Reading', $get('status') ?? []) ||
+                                  in_array('Read', $get('status') ?? []) ||
+                                  (in_array('Owned', $get('status') ?? []) &&
+                                   (in_array('Reading', $get('status') ?? []) || in_array('Read', $get('status') ?? [])))
+                                )
+                            ),
                         TextInput::make('personal_rating')
                             ->numeric()
                             ->step(0.1)
                             ->minValue(0)
                             ->maxValue(5)
                             ->suffix('/5')
-                            ->visible(fn (callable $get) => in_array($get('status'), ['Read', 'Reading'])),
+                            ->hidden(fn (callable $get) =>
+                                !(in_array('Reading', $get('status') ?? []) || in_array('Read', $get('status') ?? []))
+                            ),
                         RichEditor::make('personal_notes')
                             ->maxLength(65535)
                             ->columnSpanFull(),
