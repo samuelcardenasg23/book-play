@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Book extends Model
 {
@@ -20,6 +21,7 @@ class Book extends Model
         'published_date',
         'main_category',
         'status',
+        'price',
         'purchase_date',
         'start_reading_date',
         'finish_reading_date',
@@ -39,6 +41,18 @@ class Book extends Model
         'average_rating' => 'decimal:1',
         'personal_rating' => 'decimal:1',
     ];
+
+    protected function price(): Attribute
+    {
+        return Attribute::make(
+            get: function ($value) {
+                return $value !== null ? $value / 100 : null;
+            },
+            set: function ($value) {
+                return $value !== null ? $value * 100 : null;
+            }
+        );
+    }
 
     public function user(): BelongsTo
     {

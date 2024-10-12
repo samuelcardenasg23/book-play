@@ -9,13 +9,14 @@ use App\Enums\Status;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Filament\Resources\Resource;
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\Facades\Auth;
 use Filament\Forms\Components\Section;
 use Illuminate\Database\Eloquent\Builder;
+use Filament\Tables\Columns\Summarizers\Sum;
 use App\Filament\Resources\BookResource\Pages;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Resources\BookResource\RelationManagers;
-use Illuminate\Support\HtmlString;
 
 class BookResource extends Resource
 {
@@ -110,6 +111,11 @@ class BookResource extends Resource
                     ->native(false)
                     ->default(now())
                     ->format('Y-m-d'),
+                Forms\Components\TextInput::make('price')
+                    ->label('Price')
+                    ->prefix('$')
+                    ->required()
+                    ->default(0),
                 Forms\Components\DatePicker::make('start_reading_date')
                     ->native(false)
                     ->default(now())
@@ -163,6 +169,14 @@ class BookResource extends Resource
                 Tables\Columns\TextColumn::make('personal_rating')
                     ->numeric()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('price')
+                    ->label('Price')
+                    ->money('COP')
+                    ->sortable()
+                    ->toggleable()
+                    ->summarize([
+                        Sum::make()->money(currency: 'COP', divideBy: 100),
+                    ]),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')

@@ -23,6 +23,7 @@ return new class extends Migration
             $table->string('main_category')->nullable();
             $table->enum('status', ['For Purchase', 'Owned', 'Reading', 'Read'])->default('For Purchase')->nullable();
             $table->date('purchase_date')->nullable();
+            $table->integer('price')->nullable();
             $table->date('start_reading_date')->nullable();
             $table->date('finish_reading_date')->nullable();
             $table->integer('reading_progress')->default(0);
