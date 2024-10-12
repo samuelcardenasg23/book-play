@@ -53,43 +53,51 @@ class BookResource extends Resource
                 Section::make('Book Information')
                     ->icon('heroicon-o-book-open')
                     ->schema([
-                        Select::make('google_books_search')
-                            ->label('Search Google Books')
-                            ->searchable()
-                            ->getSearchResultsUsing(function (string $search) {
-                                $googleBooksService = new GoogleBooksService();
-                                $results = $googleBooksService->searchBooks($search);
-
-                                return collect($results['items'] ?? [])
-                                    ->take(5)
-                                    ->mapWithKeys(function ($item) {
-                                        return [$item['id'] => $item['volumeInfo']['title'] . ' - ' . implode(', ', $item['volumeInfo']['authors'] ?? []) . ' - ' . ($item['volumeInfo']['publisher'] ?? 'N/A')];
-                                    })
-                                    ->toArray();
-                            })
-                            ->afterStateUpdated(function ($state, callable $set) {
-
-                                if ($state && $state !== 'label') {
+                        Forms\Components\Group::make([
+                            Select::make('google_books_search')
+                                ->label('Search Google Books')
+                                ->searchable()
+                                ->getSearchResultsUsing(function (string $search) {
                                     $googleBooksService = new GoogleBooksService();
-                                    $book = $googleBooksService->getBookById($state);
+                                    $results = $googleBooksService->searchBooks($search);
 
-                                    if ($book && isset($book['volumeInfo'])) {
-                                        $volumeInfo = $book['volumeInfo'];
+                                    return collect($results['items'] ?? [])
+                                        ->take(10)
+                                        ->mapWithKeys(function ($item) {
+                                            return [$item['id'] => $item['volumeInfo']['title'] . ' - ' . implode(', ', $item['volumeInfo']['authors'] ?? []) . ' - ' . ($item['volumeInfo']['publisher'] ?? 'N/A')];
+                                        })
+                                        ->toArray();
+                                })
+                                ->afterStateUpdated(function ($state, callable $set) {
+                                    if ($state && $state !== 'label') {
+                                        $googleBooksService = new GoogleBooksService();
+                                        $book = $googleBooksService->getBookById($state);
 
-                                        // Set the fields
-                                        $set('title', $volumeInfo['title'] ?? '');
-                                        $set('authors', json_encode($volumeInfo['authors'] ?? []));
-                                        $set('description', $volumeInfo['description'] ?? '');
-                                        $set('cover_image_url', $volumeInfo['imageLinks']['thumbnail'] ?? '');
-                                        $set('page_count', $volumeInfo['pageCount'] ?? null);
-                                        $set('published_date', $volumeInfo['publishedDate'] ?? null);
-                                        $set('main_category', $volumeInfo['categories'][0] ?? '');
-                                        $set('average_rating', $volumeInfo['averageRating'] ?? null);
-                                        $set('google_books_id', $state);
+                                        if ($book && isset($book['volumeInfo'])) {
+                                            $volumeInfo = $book['volumeInfo'];
+
+                                            $set('title', $volumeInfo['title'] ?? '');
+                                            $set('authors', implode(', ', $volumeInfo['authors'] ?? []));
+                                            $set('description', strip_tags($volumeInfo['description'] ?? ''));
+                                            $set('cover_image_url', $volumeInfo['imageLinks']['thumbnail'] ?? '');
+                                            $set('page_count', $volumeInfo['pageCount'] ?? null);
+                                            $set('published_date', $volumeInfo['publishedDate'] ?? null);
+                                            $set('main_category', $volumeInfo['categories'][0] ?? '');
+                                            $set('average_rating', $volumeInfo['averageRating'] ?? null);
+                                            $set('google_books_id', $state);
+                                        }
                                     }
-                                }
-                            })
-                            ->reactive(),
+                                })
+                                ->reactive(),
+                        ])->visible(fn ($livewire) => $livewire instanceof Pages\CreateBook),
+                        Placeholder::make('image')
+                            ->label('Cover Image')
+                            ->content(function ($get): HtmlString {
+                                $coverImage = $get('cover_image_url');
+                                return $coverImage
+                                    ? new HtmlString("<img src='{$coverImage}' style='max-width: 200px; max-height: 300px;'>")
+                                    : new HtmlString("<span>No cover image available</span>");
+                            }),
                         TextInput::make('title')
                             ->required()
                             ->maxLength(255)
@@ -98,23 +106,17 @@ class BookResource extends Resource
                         TextInput::make('authors')
                             ->disabled()
                             ->dehydrated(),
-                        Placeholder::make('image')
-                            ->label('Cover Image')
-                            ->content(function ($record): HtmlString {
-                                $coverImage = $record?->cover_image_url;
-                                return $coverImage
-                                    ? new HtmlString("<img src='{$coverImage}' style='max-width: 200px; max-height: 300px;'>")
-                                    : new HtmlString("<span>No cover image available</span>");
-                            }),
                         TextInput::make('cover_image_url')
                             ->url()
                             ->disabled()
-                            ->dehydrated(),
-                        Textarea::make('description')
+                            ->dehydrated()
+                            ->hidden(),
+                        Forms\Components\Textarea::make('description')
                             ->maxLength(65535)
-                            ->columnSpan(3)
+                            ->columnSpanFull()
                             ->disabled()
-                            ->dehydrated(),
+                            ->dehydrated()
+                            ->autosize(),
                         TextInput::make('page_count')
                             ->numeric()
                             ->minValue(1)
@@ -142,8 +144,9 @@ class BookResource extends Resource
                             ->placeholder('Enter Google Books ID')
                             ->helperText('Optional: ID from Google Books API')
                             ->disabled()
-                            ->dehydrated(),
-                    ])->columns(3),
+                            ->dehydrated()
+                            ->hidden(),
+                    ])->columns(2),
                 Section::make('Book Status')
                     ->icon('heroicon-o-calculator')
                     ->schema([
@@ -161,40 +164,49 @@ class BookResource extends Resource
                                 'Read' => 'success',
                             ])
                             ->default('For Purchase')
+                            ->reactive()
                             ->inline(),
                         Forms\Components\DatePicker::make('purchase_date')
+                            ->label('Purchase Date')
                             ->native(false)
-                            ->default(now())
-                            ->format('Y-m-d'),
+                            ->format('Y-m-d')
+                            ->nullable()
+                            ->hidden(fn (callable $get) => $get('status') === 'For Purchase'),
                         Forms\Components\TextInput::make('price')
                             ->label('Price')
                             ->prefix('$')
                             ->required()
                             ->default(0),
                         Forms\Components\DatePicker::make('start_reading_date')
+                            ->label('Start Reading Date')
                             ->native(false)
-                            ->default(now())
-                            ->format('Y-m-d'),
+                            ->format('Y-m-d')
+                            ->nullable()
+                            ->hidden(fn (callable $get) => in_array($get('status'), ['For Purchase', 'Owned'])),
                         Forms\Components\DatePicker::make('finish_reading_date')
+                            ->label('Finish Reading Date')
                             ->native(false)
-                            ->default(now())
-                            ->format('Y-m-d'),
+                            ->format('Y-m-d')
+                            ->nullable()
+                            ->hidden(fn (callable $get) => $get('status') !== 'Read'),
                         Forms\Components\TextInput::make('reading_progress')
                             ->numeric()
                             ->default(0)
                             ->minValue(0)
                             ->maxValue(100)
-                            ->suffix('%'),
+                            ->suffix('%')
+                            ->hidden(fn (callable $get) => in_array($get('status'), ['For Purchase', 'Owned'])),
                         Forms\Components\TextInput::make('personal_rating')
                             ->numeric()
                             ->step(0.1)
                             ->minValue(0)
                             ->maxValue(5)
-                            ->suffix('/5'),
+                            ->suffix('/5')
+                            ->visible(fn (callable $get) => in_array($get('status'), ['Read', 'Reading'])),
                         Forms\Components\RichEditor::make('personal_notes')
                             ->maxLength(65535)
-                            ->columnSpan(3),
-                    ])->columns(3),
+                            ->columnSpanFull(),
+                    ])->columns(2),
             ]);
     }
 
