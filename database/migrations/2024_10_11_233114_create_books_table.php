@@ -28,8 +28,8 @@ return new class extends Migration
             $table->integer('reading_progress')->default(0);
             $table->text('personal_notes')->nullable();
             $table->string('google_books_id')->nullable();
-            $table->unsignedDecimal('average_rating', 2, 1)->nullable();
-            $table->unsignedDecimal('personal_rating', 2, 1)->nullable();
+            $table->decimal('average_rating', 2, 1)->unsigned()->nullable();
+            $table->decimal('personal_rating', 2, 1)->unsigned()->nullable();
             $table->timestamps();
         });
     }
